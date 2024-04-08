@@ -1,0 +1,14 @@
+{
+    "Username": "JohnDoe",
+    "Applications": [
+      {
+        "Name": "Glen Battlenet",
+        "RelPathToPng": "/imgsrc/bezospog.png"
+      },
+      {
+        "Name": "Application2",
+        "RelPathToPng": "/path/to/image2.png"
+      }
+    ]
+  }
+  
