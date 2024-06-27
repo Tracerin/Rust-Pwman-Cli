@@ -1,10 +1,10 @@
 use std::io;
 use std::fs;
-use std::process::Command;
-use std::process::Output;
 use rand::prelude::*;
 use rand_chacha::ChaCha8Rng;
 use serde::{Serialize, Deserialize};
+use std::fs::File;
+use std::io::Read;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Savedapp {
@@ -15,19 +15,29 @@ struct Savedapp {
     num_chars: i32,
 }
 
-// helper for convert_png_to_string()
-fn remove_whitespace(s: &str) -> String {
-    s.split_whitespace().collect()
+
+fn read_file_as_bytes(filename: &str) -> io::Result<Vec<u8>> {
+    let mut file = File::open(filename)?;
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)?;
+    Ok(buffer)
+}
+
+fn bytes_as_ascii_string(all_bytes: &Vec<u8>) -> String {
+    let mut filter_vec: Vec<u8> = Vec::new();
+    for &i in all_bytes {
+        if (i >= 33) && (i <= 126) { // is printable character, avoids space
+            filter_vec.push(i);
+        }
+    }
+
+    let valid_ascii_string = String::from_utf8(filter_vec).unwrap();
+    return valid_ascii_string;
 }
 
 fn convert_png_to_string(rel_path: &String, pin: &u64, pw_length: &i32) -> String  {
-    // get raw string from png 
-    let mut strings_com = Command::new("strings");
-    strings_com.arg(rel_path);
-    let raw_output: Output = strings_com.output().expect("failed to run strings command");
-    let mut raw_string: String = String::from_utf8(raw_output.stdout).unwrap();
-    raw_string = remove_whitespace(raw_string.trim().as_ref());
 
+    let raw_string = bytes_as_ascii_string(&read_file_as_bytes(&rel_path).unwrap());
     let mut final_pw: String = String::new();
 
     let mut rng = ChaCha8Rng::seed_from_u64(*pin);
@@ -261,24 +271,8 @@ fn add_new_password (mut saved_app_vec: Vec<Savedapp>, pin: &u64) {
 }
 
 fn main() {
-    // current directory: home/repos/cli_pwman_rust
-    // example path for pngs: src/imgsrc/<example.png>
-    /* 
-    let example_app = Savedapp {
-        app_name: String::from("Chrome"),
-        username: String::from("Trace"),
-        email: String::from("tracerindal@gmail.com"),
-        png_name: String::from("bezospog.png"),
-        num_chars: 10,
-    };
-    */
-
     let data = fs::read_to_string("src/saved_apps.json").expect("Failed to read json"); // read from json to &str
     let saved_app_vec: Vec<Savedapp>= serde_json::from_str(&data).expect("Failed to parse json into savedapp");
-
-    //let mut saved_app_vec: Vec<Savedapp> = serde_json::from_str(data);
-    //parse json here - create SavedApp struct for each application and append to saved_app_vec
-
 
     let mut input: String = String::new();
     println!("Please enter your pin:");
